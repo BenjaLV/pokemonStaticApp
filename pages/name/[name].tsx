@@ -1,23 +1,21 @@
-import { useState } from 'react';
-
-import { Button, Card, Container, Grid, Text, Image } from '@nextui-org/react';
+import React, { useState } from 'react'
 
 import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
+import { Params } from 'next/dist/shared/lib/router/utils/route-matcher';
+import { Button, Card, Container, Grid, Text, Image } from '@nextui-org/react';
 
 import confetti from 'canvas-confetti';
 
-import { pokeApi } from '../../api';
+import { Pokemon, PokemonListResponse } from '@/interfaces';
 import { Layout } from '@/components/layouts';
-import { Pokemon } from '@/interfaces';
+import { pokeApi } from '@/api';
 import { localFavorites } from '@/utils';
-import { Params } from 'next/dist/shared/lib/router/utils/route-matcher';
-
 
 interface Props {
     pokemon: Pokemon;
 }
 
-const PokemonPage: NextPage<Props> = ({ pokemon }) => {
+const PokemonByNamePage: NextPage<Props> = ({ pokemon }) => {
 
     const [isInFavorites, setIsInFavorites] = useState(localFavorites.existInFavorites(pokemon.id))
 
@@ -39,8 +37,6 @@ const PokemonPage: NextPage<Props> = ({ pokemon }) => {
         })
     }
 
-
-
     return (
         <Layout title={pokemon.name}>
 
@@ -61,7 +57,7 @@ const PokemonPage: NextPage<Props> = ({ pokemon }) => {
                 <Grid xs={12} sm={8}>
                     <Card>
                         <Card.Header css={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Text h1 transform='capitalize'>{pokemon.name}</Text>
+                            <Text h1 transform='capitalize'>{pokemon?.name}</Text>
 
                             <Button
                                 color="gradient"
@@ -115,26 +111,31 @@ const PokemonPage: NextPage<Props> = ({ pokemon }) => {
 
 
         </Layout>
-    );
-};
+    )
+}
 
 export const getStaticPaths: GetStaticPaths<Params> = async () => {
-    const paths = [...Array(151)].map((_, index) => ({
-        params: { id: `${index + 1}` },
-    }));
+
+    const { data } = await pokeApi.get<PokemonListResponse>('/pokemon?limit=151')
+    const pokemonNames: string[] = data.results.map(pokemon => pokemon.name);
+
 
     return {
-        paths,
+        paths: pokemonNames.map(name => ({
+            params: { name }
+        })),
         fallback: false,
     };
 };
 
+
+
 export const getStaticProps: GetStaticProps<Props, Params> = async ({
     params,
 }) => {
-    const { id } = params!;
+    const { name } = params!;
 
-    const { data } = await pokeApi.get<Pokemon>(`/pokemon/${id}`);
+    const { data } = await pokeApi.get<Pokemon>(`/pokemon/${name}`);
 
     return {
         props: {
@@ -144,4 +145,5 @@ export const getStaticProps: GetStaticProps<Props, Params> = async ({
 };
 
 
-export default PokemonPage;
+
+export default PokemonByNamePage;
